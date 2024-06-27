@@ -1,20 +1,80 @@
 ---
 - name: System setup
-  hosts: all
+  hosts: localhost
   become: yes
-
+  connection: local
+  gather_facts: yes
   vars:
-    ZDOTDIR: "{{ ansible_env.HOME }}/.config/zsh"
-    XDG_DATA_HOME: "{{ ansible_env.XDG_DATA_HOME | default(ansible_env.HOME + '/.local/share') }}"
-    XDG_CACHE_HOME: "{{ ansible_env.XDG_CACHE_HOME | default(ansible_env.HOME + '/.cache') }}"
-    XDG_CONFIG_HOME: "{{ ansible_env.XDG_CONFIG_HOME | default(ansible_env.HOME + '/.config') }}"
-    XDG_STATE_HOME: "{{ ansible_env.XDG_STATE_HOME | default(ansible_env.HOME + '/.local/state') }}"
+    user_home: "{{ lookup('env', 'HOME') }}"
+    ZDOTDIR: "{{ user_home }}/.config/zsh"
+    XDG_DATA_HOME: "{{ lookup('env', 'XDG_DATA_HOME') | default(user_home + '/.local/share') }}"
+    XDG_CACHE_HOME: "{{ lookup('env', 'XDG_CACHE_HOME') | default(user_home + '/.cache') }}"
+    XDG_CONFIG_HOME: "{{ lookup('env', 'XDG_CONFIG_HOME') | default(user_home + '/.config') }}"
+    XDG_STATE_HOME: "{{ lookup('env', 'XDG_STATE_HOME') | default(user_home + '/.local/state') }}"
+    yay_packages:
+      - google-chrome
+      - llogin
+      - plymouth-theme-lone-git
+      - spotify
+      - stremio
+      - tgpt-bin
+      - ventoy-bin
+      - xdg-ninja
+      - whatsapp-for-linux
+      - visual-studio-code-bin
+    pacman_packages:
+      - bat
+      - bc
+      - discord
+      - dnsmasq
+      - docker
+      - docker-compose
+      - eog
+      - fd
+      - gedit
+      - gimp
+      - git
+      - github-cli
+      - glow
+      - gnome-calculator
+      - go
+      - gradle
+      - htop
+      - inxi
+      - iptables-nft
+      - lazygit
+      - libreoffice-still
+      - man-db
+      - man-pages
+      - namcap
+      - neovim
+      - net-tools
+      - nmap
+      - noto-fonts-emoji
+      - obs-studio
+      - obsidian
+      - okular
+      - openbsd-netcat
+      - p7zip
+      - partitionmanager
+      - plymouth
+      - python-pip
+      - python-pynvim
+      - ripgrep
+      - scrcpy
+      - stow
+      - telegram-desktop
+      - tmux
+      - unarchiver
+      - unzip
+      - wireguard-tools
+      - zoxide
 
   tasks:
     - name: Export ZDOTDIR
       lineinfile:
         path: /etc/zsh/zprofile
-        line: 'export ZDOTDIR="{{ ansible_env.HOME }}/.config/zsh"'
+        line: 'export ZDOTDIR="$HOME"/.config/zsh'
         create: yes
 
     - name: Create required directories
@@ -22,12 +82,13 @@
         path: "{{ item }}"
         state: directory
         mode: '0755'
+      become: no
       loop:
         - "{{ XDG_DATA_HOME }}/gnupg"
         - "{{ XDG_CACHE_HOME }}/nv"
         - "{{ XDG_DATA_HOME }}/nvm"
-        - "{{ ansible_env.HOME }}/.local/share/cargo"
-        - "{{ ansible_env.HOME }}/.local/share/rustup"
+        - "{{ user_home }}/.local/share/cargo"
+        - "{{ user_home }}/.local/share/rustup"
         - "{{ XDG_CONFIG_HOME }}/parallel"
         - "{{ XDG_CONFIG_HOME }}/npm"
         - "{{ XDG_DATA_HOME }}/gradle"
@@ -36,7 +97,7 @@
         - "{{ XDG_CACHE_HOME }}/npm"
         - "{{ XDG_CONFIG_HOME }}/npm/config"
         - "{{ XDG_STATE_HOME }}/npm/logs"
-        - "{{ ansible_env.HOME }}/python"
+        - "{{ user_home }}/python"
 
     - name: Create npmrc file
       copy:
@@ -45,25 +106,29 @@
           cache=${XDG_CACHE_HOME}/npm
           init-module=${XDG_CONFIG_HOME}/npm/config/npm-init.js
           logs-dir=${XDG_STATE_HOME}/npm/logs
+      become: no
 
     - name: Create wgetrc file
       file:
         path: "{{ XDG_CONFIG_HOME }}/wgetrc"
         state: touch
+      become: no
 
     - name: Create npm-init.js file
       file:
         path: "{{ XDG_CONFIG_HOME }}/npm/config/npm-init.js"
         state: touch
+      become: no
 
     - name: Create node_repl_history file
       file:
         path: "{{ XDG_DATA_HOME }}/node_repl_history"
         state: touch
+      become: no
 
     - name: Create pythonrc file
       copy:
-        dest: "{{ ansible_env.HOME }}/python/pythonrc"
+        dest: "{{ user_home }}/python/pythonrc"
         content: |
           def is_vanilla() -> bool:                                                                  
               import sys                                                                             
@@ -87,88 +152,40 @@
                                                                                                         
           if is_vanilla():                                                                           
               setup_history()  
+      become: no
 
     - name: Create zlua file
       file:
         path: "{{ XDG_DATA_HOME }}/zlua"
         state: touch
+      become: no
 
     - name: Clone zsh-autopair
       git:
         repo: 'https://github.com/hlissner/zsh-autopair.git'
-        dest: "{{ ZDOTDIR }}/custom/plugins/zsh-autopair"
+        dest: "/usr/share/oh-my-zsh/custom/plugins/zsh-autopair"
 
     - name: Clone fzf-tab
       git:
         repo: 'https://github.com/Aloxaf/fzf-tab.git'
-        dest: "{{ ZDOTDIR }}/custom/plugins/fzf-tab"
+        dest: "/usr/share/oh-my-zsh/custom/plugins/fzf-tab"
 
     - name: Clone fzf-docker
       git:
         repo: 'https://github.com/pierpo/fzf-docker.git'
-        dest: "{{ ZDOTDIR }}/custom/plugins/fzf-docker"
+        dest: "/usr/share/oh-my-zsh/custom/plugins/fzf-docker"
 
     - name: Install yay
       pacman:
         name: yay
         state: present
 
-    - name: Install packages with yay
-      command: yay -S --noconfirm "{{ item }}"
-      loop:
-        - bat
-        - bc
-        - discord
-        - dnsmasq
-        - docker
-        - docker-compose
-        - eog
-        - fd
-        - gedit
-        - gimp
-        - git
-        - github-cli
-        - glow
-        - gnome-calculator
-        - go
-        - google-chrome
-        - gradle
-        - htop
-        - inxi
-        - iptables-nft
-        - lazygit
-        - libreoffice-still
-        - llogin
-        - man-db
-        - man-pages
-        - namcap
-        - neovim
-        - net-tools
-        - nmap
-        - noto-fonts-emoji
-        - obs-studio
-        - obsidian
-        - okular
-        - openbsd-netcat
-        - p7zip
-        - partitionmanager
-        - plymouth
-        - plymouth-theme-lone-git
-        - python-pip
-        - python-pynvim
-        - ripgrep
-        - scrcpy
-        - spotify
-        - stow
-        - stremio
-        - telegram-desktop
-        - tgpt-bin
-        - tmux
-        - unarchiver
-        - unzip
-        - ventoy-bin
-        - visual-studio-code-bin
-        - whatsapp-for-linux
-        - wireguard-tools
-        - xdg-ninja
-        - zoxide
+    - name: Install pacman packages
+      pacman:
+        name: "{{ pacman_packages }}"
+        state: present
+
+    - name: Install yay packages
+      shell: yay -S --noconfirm "{{ item }}"
+      loop: "{{ yay_packages }}"
+      become: no
