@@ -1,0 +1,174 @@
+---
+- name: System setup
+  hosts: all
+  become: yes
+
+  vars:
+    ZDOTDIR: "{{ ansible_env.HOME }}/.config/zsh"
+    XDG_DATA_HOME: "{{ ansible_env.XDG_DATA_HOME | default(ansible_env.HOME + '/.local/share') }}"
+    XDG_CACHE_HOME: "{{ ansible_env.XDG_CACHE_HOME | default(ansible_env.HOME + '/.cache') }}"
+    XDG_CONFIG_HOME: "{{ ansible_env.XDG_CONFIG_HOME | default(ansible_env.HOME + '/.config') }}"
+    XDG_STATE_HOME: "{{ ansible_env.XDG_STATE_HOME | default(ansible_env.HOME + '/.local/state') }}"
+
+  tasks:
+    - name: Export ZDOTDIR
+      lineinfile:
+        path: /etc/zsh/zprofile
+        line: 'export ZDOTDIR="{{ ansible_env.HOME }}/.config/zsh"'
+        create: yes
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ XDG_DATA_HOME }}/gnupg"
+        - "{{ XDG_CACHE_HOME }}/nv"
+        - "{{ XDG_DATA_HOME }}/nvm"
+        - "{{ ansible_env.HOME }}/.local/share/cargo"
+        - "{{ ansible_env.HOME }}/.local/share/rustup"
+        - "{{ XDG_CONFIG_HOME }}/parallel"
+        - "{{ XDG_CONFIG_HOME }}/npm"
+        - "{{ XDG_DATA_HOME }}/gradle"
+        - "{{ XDG_DATA_HOME }}/go"
+        - "{{ XDG_DATA_HOME }}/android"
+        - "{{ XDG_CACHE_HOME }}/npm"
+        - "{{ XDG_CONFIG_HOME }}/npm/config"
+        - "{{ XDG_STATE_HOME }}/npm/logs"
+        - "{{ ansible_env.HOME }}/python"
+
+    - name: Create npmrc file
+      copy:
+        dest: "{{ XDG_CONFIG_HOME }}/npm/npmrc"
+        content: |
+          cache=${XDG_CACHE_HOME}/npm
+          init-module=${XDG_CONFIG_HOME}/npm/config/npm-init.js
+          logs-dir=${XDG_STATE_HOME}/npm/logs
+
+    - name: Create wgetrc file
+      file:
+        path: "{{ XDG_CONFIG_HOME }}/wgetrc"
+        state: touch
+
+    - name: Create npm-init.js file
+      file:
+        path: "{{ XDG_CONFIG_HOME }}/npm/config/npm-init.js"
+        state: touch
+
+    - name: Create node_repl_history file
+      file:
+        path: "{{ XDG_DATA_HOME }}/node_repl_history"
+        state: touch
+
+    - name: Create pythonrc file
+      copy:
+        dest: "{{ ansible_env.HOME }}/python/pythonrc"
+        content: |
+          def is_vanilla() -> bool:                                                                  
+              import sys                                                                             
+              return not hasattr(__builtins__, '__IPYTHON__') and 'bpython' not in sys.argv[0]       
+                                                                                                        
+          def setup_history():                                                                       
+              import os                                                                              
+              import atexit                                                                          
+              import readline                                                                        
+              from pathlib import Path                                                               
+                                                                                                        
+              if state_home := os.environ.get('XDG_STATE_HOME'):                                     
+                  state_home = Path(state_home)                                                      
+              else:                                                                                  
+                  state_home = Path.home() / '.local' / 'state'                                      
+                                                                                                        
+              history: Path = state_home / 'python_history'                                          
+                                                                                                        
+              readline.read_history_file(str(history))                                               
+              atexit.register(readline.write_history_file, str(history))                             
+                                                                                                        
+          if is_vanilla():                                                                           
+              setup_history()  
+
+    - name: Create zlua file
+      file:
+        path: "{{ XDG_DATA_HOME }}/zlua"
+        state: touch
+
+    - name: Clone zsh-autopair
+      git:
+        repo: 'https://github.com/hlissner/zsh-autopair.git'
+        dest: "{{ ZDOTDIR }}/custom/plugins/zsh-autopair"
+
+    - name: Clone fzf-tab
+      git:
+        repo: 'https://github.com/Aloxaf/fzf-tab.git'
+        dest: "{{ ZDOTDIR }}/custom/plugins/fzf-tab"
+
+    - name: Clone fzf-docker
+      git:
+        repo: 'https://github.com/pierpo/fzf-docker.git'
+        dest: "{{ ZDOTDIR }}/custom/plugins/fzf-docker"
+
+    - name: Install yay
+      pacman:
+        name: yay
+        state: present
+
+    - name: Install packages with yay
+      command: yay -S --noconfirm "{{ item }}"
+      loop:
+        - bat
+        - bc
+        - discord
+        - dnsmasq
+        - docker
+        - docker-compose
+        - eog
+        - fd
+        - gedit
+        - gimp
+        - git
+        - github-cli
+        - glow
+        - gnome-calculator
+        - go
+        - google-chrome
+        - gradle
+        - htop
+        - inxi
+        - iptables-nft
+        - lazygit
+        - libreoffice-still
+        - llogin
+        - man-db
+        - man-pages
+        - namcap
+        - neovim
+        - net-tools
+        - nmap
+        - noto-fonts-emoji
+        - obs-studio
+        - obsidian
+        - okular
+        - openbsd-netcat
+        - p7zip
+        - partitionmanager
+        - plymouth
+        - plymouth-theme-lone-git
+        - python-pip
+        - python-pynvim
+        - ripgrep
+        - scrcpy
+        - spotify
+        - stow
+        - stremio
+        - telegram-desktop
+        - tgpt-bin
+        - tmux
+        - unarchiver
+        - unzip
+        - ventoy-bin
+        - visual-studio-code-bin
+        - whatsapp-for-linux
+        - wireguard-tools
+        - xdg-ninja
+        - zoxide
