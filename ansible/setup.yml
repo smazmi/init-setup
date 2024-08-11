@@ -31,6 +31,8 @@
       - docker-compose
       - eog
       - fd
+      - fzf
+      - ffmpegthumbnailer
       - gedit
       - gimp
       - git
@@ -40,8 +42,10 @@
       - go
       - gradle
       - htop
+      - imagemagick
       - inxi
       - iptables-nft
+      - jdk-openjdk
       - lazygit
       - libreoffice-still
       - man-db
@@ -68,6 +72,7 @@
       - unarchiver
       - unzip
       - wireguard-tools
+      - yazi
       - zoxide
 
   tasks:
@@ -90,13 +95,17 @@
         - "{{ user_home }}/.local/share/cargo"
         - "{{ user_home }}/.local/share/rustup"
         - "{{ XDG_CONFIG_HOME }}/parallel"
+        - "{{ XDG_CONFIG_HOME }}/aws/credentials"
+        - "{{ XDG_CONFIG_HOME }}/aws/config"
         - "{{ XDG_CONFIG_HOME }}/npm"
         - "{{ XDG_DATA_HOME }}/gradle"
         - "{{ XDG_DATA_HOME }}/go"
         - "{{ XDG_DATA_HOME }}/android"
+        - "{{ XDG_DATA_HOME }}/wine"
         - "{{ XDG_CACHE_HOME }}/npm"
         - "{{ XDG_CONFIG_HOME }}/npm/config"
         - "{{ XDG_STATE_HOME }}/npm/logs"
+        - "{{ XDG_DATA_HOME }}/ansible"
         - "{{ user_home }}/python"
 
     - name: Create npmrc file
@@ -175,6 +184,24 @@
         repo: 'https://github.com/pierpo/fzf-docker.git'
         dest: "/usr/share/oh-my-zsh/custom/plugins/fzf-docker"
 
+    - name: Clone dotfiles
+      git:
+        repo: 'git@github.com:smazmi/dotfiles.git'
+        dest: "{{ user_home }}/.dotfiles"
+      become: no
+
+    - name: Stow zsh configuration
+      shell: stow zsh
+      args:
+        chdir: "{{ user_home }}/.dotfiles"
+      become: no
+
+    - name: Stow nvim configuration
+      shell: stow nvim
+      args:
+        chdir: "{{ user_home }}/.dotfiles"
+      become: no
+
     - name: Install yay
       pacman:
         name: yay
@@ -189,3 +216,6 @@
       shell: yay -S --noconfirm "{{ item }}"
       loop: "{{ yay_packages }}"
       become: no
+    
+    - name: Boot animation change
+      shell: plymouth-set-default-theme -R lone
