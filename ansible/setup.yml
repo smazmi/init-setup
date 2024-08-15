@@ -22,6 +22,9 @@
       - xdg-ninja
       - whatsapp-for-linux
       - visual-studio-code-bin
+      - aws-cli-v2
+      - droidcam
+      - postman-bin
     pacman_packages:
       - bat
       - bc
@@ -81,6 +84,13 @@
         path: /etc/zsh/zprofile
         line: 'export ZDOTDIR="$HOME"/.config/zsh'
         create: yes
+  
+    - name: Export bash HISTFILE
+      lineinfile:
+        path: "{{ user_home }}/.bash_profile"
+        line: 'export HISTFILE="${XDG_STATE_HOME}"/bash/history'
+        create: yes
+      become: no
 
     - name: Create required directories
       file:
@@ -120,6 +130,12 @@
     - name: Create wgetrc file
       file:
         path: "{{ XDG_CONFIG_HOME }}/wgetrc"
+        state: touch
+      become: no
+      
+    - name: Create wgetrc file
+      file:
+        path: "{{ XDG_STATE_HOME }}/bash/history"
         state: touch
       become: no
 
